@@ -1,9 +1,12 @@
 #include <iostream>
+#include <vector>
+#include <ctime>
+
 
 class Human {
-  private:
+private:
     std::string name = "unknown";
-  public:
+public:
     std::string getName () {
         return name;
     }
@@ -14,93 +17,149 @@ class Human {
 };
 
 class Worker : public Human {
-  private:
+private:
     char typeTask = 'a';
-  public:
-    Worker (int inI) {
-        int num = std::rand() % 3;
-        if (num == 0) {
-            typeTask = 'A';
-        } else if (num == 1) {
-            typeTask = 'B';
-        } else if (num == 2) {
-            typeTask = 'C';
-        }
-        setName("Worker" + std::to_string(inI + 1));
-    }
-
-    void showTask () {
+public:
+    void setTask (char inTask) {
+        typeTask = inTask;
         std::cout << "      " << getName() << " took task #" << typeTask << std::endl;
     }
 };
 
 class Manager : public Human {
-  private:
+private:
     int num;
     int task;
-    int taskSum;
-  public:
-    Manager (int inTask, int inNum, int inMembersCount) : num(inNum + 1) {
-        std::srand(inTask + num);
-        taskSum = std::rand() % (inMembersCount + 1);
+public:
+    Manager (int inI) : num(inI + 1) {
+
+    }
+
+    int setTask (int inTask, unsigned long long workersCount) {
         task = inTask;
-        setName("Manager" + std::to_string(inNum + 1));
-    }
-
-    int getTask () {
-        return taskSum;
-    }
-
-    void showTask () {
-        std::cout << getName() << " took task #" << task << std::endl;
+        std::cout << std::endl << "TEAM #" << num << std::endl;
+        std::cout << "   " << getName() << " took task #" << task << std::endl;
+        int hash = task + num;
+        std::srand(hash);
+        int taskCount = std::rand() % workersCount + 1;
+        return taskCount;
     }
 };
 
 class Team {
-  private:
-    int memberCount;
+private:
+    int membersCount;
     Manager* manager = nullptr;
-    Worker** worker = nullptr;
-  public:
-    Team (int inMembersCount, int inTask, int inNum) : memberCount(inMembersCount) {
-        std::cout << "TEAM #" << inNum + 1 << std::endl;
-        manager = new Manager (inTask, inNum, inMembersCount);
-        manager->showTask();
-        std::cout << "  " << "Team #" << inNum + 1 << " performs " << manager->getTask() << " task(s)" << std::endl;
-        worker = new Worker*[memberCount - 1];
-        for (int i = 0;i < memberCount - 1;i++) {
-            worker[i] = new Worker(i);
-            worker[i]->showTask();
+    std::vector <Worker*> workers;
+    int taskCount;
+public:
+    Team (int inMembersCount, int inI) : membersCount(inMembersCount) {
+        manager = new Manager(inI);
+        for (int i = 0;i < membersCount - 1;i++) {
+            workers.push_back(new Worker);
         }
+    }
+
+    void setName (int inI) {
+        manager->setName("Manager" + std::to_string(inI + 1));
+        for (int i = 0;i < membersCount - 1;i++) {
+            workers[i]->setName("Worker" + std::to_string(i + 1));
+        }
+    }
+
+    void setTask (int inTask, int inI) {
+        taskCount = manager->setTask(inTask, workers.size());
+        std::cout << "  " << manager->getName() << " has identified " << taskCount <<  " task(s)" << std::endl;
+        settingTasksForWorkers(inI);
+    }
+
+    void settingTasksForWorkers (int inI) {
+        std::srand(std::time(nullptr) + inI);
+        for (int i = 0;i < workers.size();i++) {
+            char task;
+            int num = std::rand() % 3;
+            if (num == 0) {
+                task = 'A';
+            } else if (num == 1) {
+                task = 'B';
+            } else if (num == 2) {
+                task = 'C';
+            }
+            workers[i]->setTask(task);
+        }
+        std::cout << std::endl;
     }
 
     void clear () {
         delete manager;
-        for (int i = 0;i < memberCount - 1;i++) {
-            delete worker[i];
+        for (int i = 0;i < membersCount - 1;i++) {
+            delete workers[i];
         }
-        delete[] worker;
     }
 };
 
 class Leader : public Human {
-  private:
-    Team** team = nullptr;
-  public:
-    Leader (int inTeamCount) {
-        team = new Team*[inTeamCount];
+private:
+    std::vector<int> tasks;
+public:
+    void setTasks (int inTask) {
+        tasks.push_back(inTask);
     }
 
-    void setTeam (int inI, int inMembersCount, int inTask) {
-        team[inI] = new Team (inMembersCount, inTask, inI);
+    int taskSent () {
+        int i = std::rand() % tasks.size();
+        int task = tasks[i];
+        tasks.erase(tasks.begin() + i);
+        return task;
     }
 
     void clear (int inTeamCount) {
+
+    }
+};
+
+class Company {
+private:
+    Leader* leader = nullptr;
+    std::vector <Team*> teams;
+public:
+    Company () {
+        leader = new Leader;
+        leader->setName("Header");
+    }
+
+    void setTeam (int inI) {
+        int membersCount;
+        std::cout << "Enter the count of members of the team #" << inI + 1;
+        std::cin >> membersCount;
+        teams.push_back(new Team (membersCount, inI));
+        teams[inI]->setName(inI);
+    }
+
+    void taskSend (int inTeamCount) {
         for (int i = 0;i < inTeamCount;i++) {
-            team[i]->clear();
-            delete team[i];
+            std::srand(std::time(nullptr));
+            int task = leader->taskSent();
+            std::cout << leader->getName() << " sent the task #" << task << " for team #" << i + 1 << std::endl;
+            teams[i]->setTask(task, i);
         }
-        delete[] team;
+    }
+
+    void createTasks (int inTeamCount) {
+        for (int i = 0;i < inTeamCount;i++) {
+            int task;
+            std::cout << "Enter the company leader's task" << i + 1 << ":" << std::endl;
+            std::cin >> task;
+            leader->setTasks(task);
+        }
+    }
+
+    void clear () {
+        delete leader;
+        for (int i = 0;i < teams.size();i++) {
+            teams[i]->clear();
+            delete teams[i];
+        }
     }
 };
 
@@ -108,16 +167,13 @@ int main() {
     int teamCount;
     std::cout << "Enter the count of teams: ";
     std::cin >> teamCount;
-    Leader* leader = new Leader(teamCount);
+    Company* company = new Company;
     for (int i = 0;i < teamCount;i++) {
-        int membersCount, task;
-        std::cout << "Enter the count of members of team: ";
-        std::cin >> membersCount;
-        std::cout << "Enter the task: ";
-        std::cin >> task;
-        leader->setTeam(i, membersCount, task);
+        company->setTeam(i);
     }
-    leader->clear(teamCount);
-    delete leader;
+    company->createTasks(teamCount);
+    company->taskSend(teamCount);
+    company->clear();
+    delete company;
     return 0;
 }
