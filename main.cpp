@@ -47,7 +47,7 @@ public:
 
     }
 
-    int setTask (int inTask, unsigned long long workersCount) {
+    int setTask (int inTask, int workersCount) {
         task = inTask;
         std::cout << "TEAM #" << num << std::endl;
         std::cout << "  " << getName() << " took task #" << task << std::endl;
@@ -81,7 +81,13 @@ public:
     }
 
     void setTask (int inTask, int inI) {
-        taskCount = manager->setTask(inTask, workers.size());
+        int workersCount = 0;
+        for (int i = 0;i < workers.size();i++) {
+            if (workers[i]->getTypeTask() == '0') {
+                workersCount++;
+            }
+        }
+        taskCount = manager->setTask(inTask, workersCount);
         std::cout << "  " << manager->getName() << " has identified " << taskCount <<  " task(s)" << std::endl;
         settingTasksForWorkers(inI);
         setEmployment();
