@@ -2,7 +2,6 @@
 #include <vector>
 #include <ctime>
 
-
 class Human {
 private:
     std::string name = "unknown";
@@ -18,11 +17,24 @@ public:
 
 class Worker : public Human {
 private:
-    char typeTask = 'a';
+    char typeTask = '0';
 public:
     void setTask (char inTask) {
         typeTask = inTask;
         std::cout << "      " << getName() << " took task #" << typeTask << std::endl;
+    }
+
+    void getStatus () {
+        if (typeTask == '0') {
+            std::cout << "      " << getName() << " is free" << std::endl;
+        } else {
+            std::cout << "      " << getName() << " is already performing task #" << typeTask << std::endl;
+        }
+
+    }
+
+    char getTypeTask () {
+        return typeTask;
     }
 };
 
@@ -37,8 +49,8 @@ public:
 
     int setTask (int inTask, unsigned long long workersCount) {
         task = inTask;
-        std::cout << std::endl << "TEAM #" << num << std::endl;
-        std::cout << "   " << getName() << " took task #" << task << std::endl;
+        std::cout << "TEAM #" << num << std::endl;
+        std::cout << "  " << getName() << " took task #" << task << std::endl;
         int hash = task + num;
         std::srand(hash);
         int taskCount = std::rand() % workersCount + 1;
@@ -52,6 +64,7 @@ private:
     Manager* manager = nullptr;
     std::vector <Worker*> workers;
     int taskCount;
+    bool fullEmployment = false;
 public:
     Team (int inMembersCount, int inI) : membersCount(inMembersCount) {
         manager = new Manager(inI);
@@ -71,21 +84,42 @@ public:
         taskCount = manager->setTask(inTask, workers.size());
         std::cout << "  " << manager->getName() << " has identified " << taskCount <<  " task(s)" << std::endl;
         settingTasksForWorkers(inI);
+        setEmployment();
+    }
+
+    int setEmployment () {
+        for (int i = 0;i < workers.size();i++) {
+            if (workers[i]->getTypeTask() == '0') {
+                fullEmployment = false;
+                return 0;
+            }
+        }
+        fullEmployment = true;
+        return 1;
+    }
+
+    bool getEmployment () {
+        return fullEmployment;
     }
 
     void settingTasksForWorkers (int inI) {
         std::srand(std::time(nullptr) + inI);
         for (int i = 0;i < workers.size();i++) {
             char task;
-            int num = std::rand() % 3;
-            if (num == 0) {
-                task = 'A';
-            } else if (num == 1) {
-                task = 'B';
-            } else if (num == 2) {
-                task = 'C';
+            if (taskCount != 0 && workers[i]->getTypeTask() == '0') {
+                int num = std::rand() % 3;
+                if (num == 0) {
+                    task = 'A';
+                } else if (num == 1) {
+                    task = 'B';
+                } else if (num == 2) {
+                    task = 'C';
+                }
+                workers[i]->setTask(task);
+                taskCount--;
+            } else {
+                workers[i]->getStatus();
             }
-            workers[i]->setTask(task);
         }
         std::cout << std::endl;
     }
@@ -100,21 +134,14 @@ public:
 
 class Leader : public Human {
 private:
-    std::vector<int> tasks;
+    int task = 0;
 public:
     void setTasks (int inTask) {
-        tasks.push_back(inTask);
+        task = inTask;
     }
 
-    int taskSent () {
-        int i = std::rand() % tasks.size();
-        int task = tasks[i];
-        tasks.erase(tasks.begin() + i);
+    int getTask () {
         return task;
-    }
-
-    void clear (int inTeamCount) {
-
     }
 };
 
@@ -136,22 +163,29 @@ public:
         teams[inI]->setName(inI);
     }
 
-    void taskSend (int inTeamCount) {
+    void taskSent (int inTeamCount) {
+        std::cout << leader->getName() << " sent the task #" << leader->getTask() << " for managers" << std::endl;
         for (int i = 0;i < inTeamCount;i++) {
-            std::srand(std::time(nullptr));
-            int task = leader->taskSent();
-            std::cout << leader->getName() << " sent the task #" << task << " for team #" << i + 1 << std::endl;
-            teams[i]->setTask(task, i);
+            if (!teams[i]->getEmployment()) {
+                teams[i]->setTask(leader->getTask(), i);
+            }
         }
     }
 
-    void createTasks (int inTeamCount) {
-        for (int i = 0;i < inTeamCount;i++) {
-            int task;
-            std::cout << "Enter the company leader's task" << i + 1 << ":" << std::endl;
-            std::cin >> task;
-            leader->setTasks(task);
+    void createTasks () {
+        int task;
+        std::cout << "Enter the company leader's task:" << std::endl;
+        std::cin >> task;
+        leader->setTasks(task);
+    }
+
+    bool getEmployment () {
+        for (int i = 0;i < teams.size();i++) {
+            if (!teams[i]->getEmployment()) {
+                return false;
+            }
         }
+        return true;
     }
 
     void clear () {
@@ -171,8 +205,11 @@ int main() {
     for (int i = 0;i < teamCount;i++) {
         company->setTeam(i);
     }
-    company->createTasks(teamCount);
-    company->taskSend(teamCount);
+    while (!company->getEmployment()) {
+        company->createTasks();
+        company->taskSent(teamCount);
+    }
+    std::cout << "All employees are busy";
     company->clear();
     delete company;
     return 0;
